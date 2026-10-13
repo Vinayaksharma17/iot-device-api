@@ -14,21 +14,32 @@ DEVICES: dict[int, Device] = {
 }
 
 
-def get_device(device_id: int) -> Device | None:
-    """Return a device by ID, or None if it doesn't exist."""
-    return DEVICES.get(device_id)
 
-def list_devices() -> list[Device]:
-    return list(DEVICES.values())
+class DeviceService:
+    def get_device(self, device_id: int) -> Device | None:
+        return DEVICES.get(device_id)
 
-def create_device(device_data: DeviceCreate) -> Device:
-    next_id = max(DEVICES, default = 0) + 1
+    def list_devices(
+        self,
+        status: str | None = None,
+    ) -> list[Device]:
+        devices = list(DEVICES.values())
 
-    device = Device(
-        id = next_id,
-        name= device_data.name,
-        status= device_data.status
-    )
+        if status is None:
+            return devices
 
-    DEVICES[next_id]=device
-    return device
+        return [
+            device for device in devices
+            if device.status == status
+        ]
+
+    def create_device(self, data: DeviceCreate) -> Device:
+        next_id = max(DEVICES, default=0) + 1
+
+        device = Device(
+            id=next_id,
+            name=data.name,
+            status=data.status,
+        )
+        DEVICES[next_id] = device
+        return device

@@ -4,6 +4,8 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services.device_service import DEVICES
+from app.core.dependencies import get_device_service
+from app.models.device import Device
 
 client = TestClient(app)
 
@@ -23,7 +25,10 @@ def test_health_check():
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy"}
+    assert response.json() == {
+        "status": "healthy",
+        "app_name": "IoT Device API",
+    }
 
 
 def test_list_devices():
@@ -90,3 +95,34 @@ def test_invalid_device_id_returns_422():
     response = client.get("/devices/abc")
 
     assert response.status_code == 422
+
+def test_dependency_override():
+    class FakeDeviceService:
+        def list_devices(self, status=None):
+            return [
+                Device(
+                    id=99,
+                    name="Test Sensor",
+                    status="online",
+                )
+            ]
+
+    app.dependency_overrides[get_device_service] = (
+        lambda: FakeDeviceService()
+    )
+
+    try:
+        response = client.get("/devices")
+
+        assert response.status_code == 200
+        assert response.json() == [
+            {
+                "id": 99,
+                "name": "Test Sensor",
+                "status": "online",
+            }
+        ]
+    finally:
+        app.dependency_overrides.pop(
+            get_device_service, None
+        )
