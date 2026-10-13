@@ -1,45 +1,46 @@
 from app.models.device import Device, DeviceCreate
-
-DEVICES: dict[int, Device] = {
-    1: Device(
-        id=1,
-        name="Temperature Sensor 01",
-        status="online",
-    ),
-    2: Device(
-        id=2,
-        name="Humidity Sensor 01",
-        status="offline",
-    ),
-}
-
+from app.repositories.device_repository import DeviceRepository
 
 
 class DeviceService:
+    def __init__(self, repository: DeviceRepository) -> None:
+        self.repository = repository
+
     def get_device(self, device_id: int) -> Device | None:
-        return DEVICES.get(device_id)
+        record = self.repository.get_by_id(device_id)
+
+        if record is None:
+            return None
+
+        return Device(
+            id=record.id,
+            name=record.name,
+            status=record.status,
+        )
 
     def list_devices(
         self,
         status: str | None = None,
     ) -> list[Device]:
-        devices = list(DEVICES.values())
-
-        if status is None:
-            return devices
+        records = self.repository.list_devices(status=status)
 
         return [
-            device for device in devices
-            if device.status == status
+            Device(
+                id=record.id,
+                name=record.name,
+                status=record.status,
+            )
+            for record in records
         ]
 
     def create_device(self, data: DeviceCreate) -> Device:
-        next_id = max(DEVICES, default=0) + 1
-
-        device = Device(
-            id=next_id,
+        record = self.repository.create(
             name=data.name,
             status=data.status,
         )
-        DEVICES[next_id] = device
-        return device
+
+        return Device(
+            id=record.id,
+            name=record.name,
+            status=record.status,
+        )
